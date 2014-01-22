@@ -13,10 +13,12 @@ require 'pry'
 
 # https://github.com/jyruzicka/rb-dayone
 
+ENTRY_TAG="dailylog"
+
 # Gets or creates the daily log entry for given date
 def find_or_create_entry date=Date.today
 	search = DayOne::Search.new do
-		tag.include "dailylog"
+		tag.include ENTRY_TAG
 		creation_date.after date.to_time
 		creation_date.before (date+1).to_time
 	end
@@ -36,6 +38,8 @@ def find_or_create_entry date=Date.today
 	# Create it if need be
 	unless entry
 		entry = DayOne::Entry.new "Daily Log, #{date.strftime('%A')}\n"
+		entry.tags << ENTRY_TAG
+		entry
 	end
 
 	# Return the entry
