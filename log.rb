@@ -17,6 +17,8 @@ Bundler.require
 require 'date'
 require 'pathname'
 require 'fileutils'
+require 'optparse'
+require 'ostruct'
 
 # Tag to locate the DailyLog type entries.
 ENTRY_TAG="dailylog"
@@ -66,31 +68,59 @@ def get_text_to_append text,summary=nil,date=DateTime.now
 end
 
 # One-stop-shop to find/create entry and append formatted text
-def append_to_daily_log text,summary=nil, quite=false
+def append_to_daily_log text,summary=nil, entry=nil
 	raise "Not appending empty text to entry!" if text.to_s.empty?
 	entry_text = get_text_to_append(text,summary)
-	entry      = find_or_create_entry
+	entry      = find_or_create_entry unless entry
 	# binding.pry
 	entry.entry_text += entry_text
 	entry.create!
 	puts "Added the following entry to your log:#{entry_text}"
 end
 
-# Entry point
-def main
-	text = nil
-	summary = nil
-	if ARGV.size >= 1
-		text = ARGV[0]
+# Option parser
+def get_options
+	options = OpenStruct.new({
+		 action: :append,
+		   text: '',
+		summary: '',
+	})
+	parser  = OptionParser.new do |opts|
+		# opts.banner = %Q{Usage: dlog [text] [summary]}
+
+		opts.on('--edit', "Edit todays log entry in DayOne") do |v|
+			options.action = :edit
+		end
 	end
-	if ARGV.size == 2
-		# Can specify a summary as second argument that will be bolded.
-		summary = ARGV[1]
+	parser.parse! ARGV
+
+	if options.action == :append
+		if ARGV.size >= 1
+			options.text = ARGV[0]
+		end
+		if ARGV.size == 2
+			# Can specify a summary as second argument that will be bolded.
+			options.summary = ARGV[1]
+		end
+
+		if options.text.to_s =~ /^\s*$/
+			options.action = :external_edit
+		end
 	end
 
-	# If no arguments are specified then we open an editor
-	tmp_file = nil
-	if text.to_s =~ /^\s*$/
+	options
+end
+
+# Entry point
+def main
+	opts = get_options
+
+	if opts.action == :edit
+		entry = find_or_create_entry
+		append_to_daily_log " ", nil, entry
+		`open "dayone://edit?entryId=#{entry.uuid}"`
+		Kernel.exit 0
+	elsif opts.action == :external_edit
 		tmp_file = Pathname.new("/tmp/daily_log_entry.md") # Use MD ext for syntax highlighting
 		FileUtils.touch tmp_file unless tmp_file.file?
 		# We should probably make this customizable, pull req?
@@ -102,11 +132,11 @@ def main
 			$stderr.puts "File empty, aborting"
 			exit 1
 		end
+		opts.tmp_file = tmp_file
 	end
 
-	# Append our entry
-	append_to_daily_log text, summary
-	tmp_file.delete if tmp_file   # Cleanup
+	append_to_daily_log opts.text, opts.summary
+	tmp_file.delete if opts.tmp_file   # Cleanup
 end
 
 # Only act as a script if we were invoked directly
