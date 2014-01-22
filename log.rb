@@ -125,10 +125,10 @@ def main
 		FileUtils.touch tmp_file unless tmp_file.file?
 		# We should probably make this customizable, pull req?
 		`subl -n -w #{tmp_file}`
-		text = tmp_file.read.chomp
+		opts.text = tmp_file.read.chomp
 
 		# if they didn't type anything then don't append empty string
-		if text !~ /[^[:space:]]/  # From Rails String.blank? https://github.com/rails/rails/blob/f4e180578c673194f58d4ff5a4a656cc51b2249e/activesupport/lib/active_support/core_ext/object/blank.rb#L91
+		if opts.text !~ /[^[:space:]]/  # From Rails String.blank? https://github.com/rails/rails/blob/f4e180578c673194f58d4ff5a4a656cc51b2249e/activesupport/lib/active_support/core_ext/object/blank.rb#L91
 			$stderr.puts "File empty, aborting"
 			exit 1
 		end
