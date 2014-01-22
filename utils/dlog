@@ -1,0 +1,13 @@
+#!/usr/local/bin/zsh
+##################################################################
+# This is a ZSH script to wrap the daily-log rbenv invokations.
+# You can put this in your path, change up the file paths and you
+# should be good to go just typing:
+#	dlog 'Whatever'
+##################################################################
+
+export HOME=/Users/aburns
+export PATH=$HOME/.rbenv/bin:$PATH
+eval "$(rbenv init -)"
+cd /data/src/daily-log
+./log.rb ${(Q)@}
